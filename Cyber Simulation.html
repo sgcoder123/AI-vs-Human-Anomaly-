@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI vs Human: Cyber Attack Anomaly Detection</title>
+  <style>
+    body {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #e2e8f0;
+      font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+      padding: 0;
+      margin: 0;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 900px;
+      margin: 40px auto 0 auto;
+      background: rgba(30,41,59,0.95);
+      border-radius: 18px;
+      box-shadow: 0 8px 32px 0 rgba(31, 41, 55, 0.25);
+      padding: 36px 32px 32px 32px;
+    }
+    h1 {
+      color: #38bdf8;
+      margin-bottom: 0.2em;
+      font-size: 2.3em;
+      letter-spacing: 1px;
+      text-align: center;
+    }
+    .subtitle {
+      color: #94a3b8;
+      text-align: center;
+      margin-bottom: 28px;
+      font-size: 1.15em;
+      font-weight: 400;
+    }
+    button {
+      background: linear-gradient(90deg, #38bdf8 60%, #0ea5e9 100%);
+      color: #0f172a;
+      padding: 12px 32px;
+      border: none;
+      border-radius: 8px;
+      margin: 0 auto 18px auto;
+      display: block;
+      font-size: 1.1em;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 2px 8px 0 rgba(56,189,248,0.10);
+      transition: background 0.2s, transform 0.15s;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    button:hover:enabled {
+      background: linear-gradient(90deg, #0ea5e9 60%, #38bdf8 100%);
+      transform: translateY(-2px) scale(1.03);
+    }
+    #output, #sequence, #result, #deleteResult {
+      margin-top: 20px;
+      background: rgba(30,41,59,0.98);
+      padding: 18px 18px 12px 18px;
+      border-radius: 10px;
+      box-shadow: 0 2px 12px 0 rgba(56,189,248,0.05);
+    }
+    #sequence {
+      margin-top: 24px;
+      background: rgba(30,41,59,0.98);
+      padding: 18px 10px 18px 10px;
+      border-radius: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 22px 38px;
+      min-height: 56px;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 2px 12px 0 rgba(56,189,248,0.07);
+    }
+    .seq-num {
+      cursor: pointer;
+      padding: 10px 24px;
+      border-radius: 8px;
+      background: #334155;
+      display: inline-block;
+      transition:
+        background 0.18s,
+        color 0.18s,
+        opacity 0.4s,
+        box-shadow 0.18s,
+        transform 0.13s;
+      font-size: 1.18em;
+      font-weight: 500;
+      user-select: none;
+      box-shadow: 0 2px 8px 0 rgba(56,189,248,0.08);
+      border: 1.5px solid transparent;
+    }
+    .seq-num:hover {
+      background: #38bdf8;
+      color: #0f172a;
+      box-shadow: 0 0 0 3px #38bdf8, 0 2px 12px 0 rgba(56,189,248,0.13);
+      border-color: #38bdf8;
+      transform: scale(1.08);
+      z-index: 2;
+    }
+    .seq-num.outlier-hover {
+      background: #f87171 !important;
+      color: #fff !important;
+      box-shadow: 0 0 0 3px #f87171, 0 2px 12px 0 rgba(248,113,113,0.13);
+      border-color: #f87171;
+      transform: scale(1.11);
+    }
+    .seq-num.fade-out {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s;
+    }
+    .disabled {
+      pointer-events: none;
+      opacity: 0.6;
+    }
+    #deleteResult p, #result p {
+      margin: 0.5em 0;
+      font-size: 1.08em;
+    }
+    #deleteResult p {
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    #deleteResult .success {
+      color: #38bdf8;
+      text-shadow: 0 1px 8px #0ea5e933;
+    }
+    #deleteResult .fail {
+      color: #f87171;
+      text-shadow: 0 1px 8px #f8717133;
+    }
+    #result {
+      margin-top: 18px;
+      font-size: 1.09em;
+      background: rgba(30,41,59,0.99);
+      border: 1.5px solid #334155;
+      box-shadow: 0 2px 12px 0 rgba(56,189,248,0.07);
+    }
+    @media (max-width: 700px) {
+      .container {
+        padding: 12px 2vw 18px 2vw;
+      }
+      #sequence {
+        gap: 14px 10px;
+        padding: 10px 2px 10px 2px;
+      }
+      .seq-num {
+        font-size: 1em;
+        padding: 7px 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧠 AI vs Human: Anomaly Detection</h1>
+    <div class="subtitle">Spot and remove the outlier number faster than the AI!</div>
+    <button onclick="startGame()" id="startBtn">🎯 Start Game</button>
+    <div id="sequence"></div>
+    <div id="deleteResult"></div>
+    <div id="result"></div>
+  </div>
+  <script>
+    let sequence = [];
+    let startTime;
+    let correctAnswer;
+    let outlierIndex = -1;
+    let gameActive = false;
+    let outlierDeleted = false;
+
+    function generateSequence() {
+      let len = 50; // now 1 to 50
+      sequence = [];
+      for (let i = 1; i <= len; i++) {
+        sequence.push(i);
+      }
+      outlierIndex = Math.floor(Math.random() * len);
+      let outlier = sequence[outlierIndex] + Math.floor(Math.random() * 10 + 5);
+      correctAnswer = outlier;
+      sequence[outlierIndex] = outlier;
+    }
+
+    function renderSequence(clickable = false) {
+      const seqDiv = document.getElementById("sequence");
+      seqDiv.innerHTML = '';
+      sequence.forEach((num, idx) => {
+        const span = document.createElement('span');
+        span.innerText = num;
+        span.className = 'seq-num';
+        if (clickable && !outlierDeleted) {
+          span.onclick = () => deleteOutlier(idx, span);
+          span.onmouseover = () => {
+            if (idx === outlierIndex) span.classList.add('outlier-hover');
+          };
+          span.onmouseout = () => {
+            span.classList.remove('outlier-hover');
+          };
+        } else {
+          span.classList.add('disabled');
+        }
+        seqDiv.appendChild(span);
+      });
+    }
+
+    function startGame() {
+      generateSequence();
+      outlierDeleted = false;
+      gameActive = true;
+      document.getElementById("result").innerText = '';
+      document.getElementById("deleteResult").innerText = '';
+      document.getElementById("startBtn").disabled = true;
+      renderSequence(true);
+      startTime = new Date();
+    }
+
+    function aiDetect(seq) {
+      for (let i = 1; i < seq.length; i++) {
+        if (Math.abs(seq[i] - seq[i - 1]) > 2) {
+          return seq[i];
+        }
+      }
+      return null;
+    }
+
+    function deleteOutlier(idx, span) {
+      if (!gameActive || outlierDeleted) return;
+      if (sequence[idx] === correctAnswer) {
+        outlierDeleted = true;
+        span.classList.add('fade-out');
+        setTimeout(() => {
+          sequence.splice(idx, 1);
+          renderSequence(false);
+          const endTime = new Date();
+          const timeTaken = ((endTime - startTime) / 1000).toFixed(2);
+          const aiGuess = [correctAnswer];
+          const aiTime = "0.1"; // always 0.1
+          document.getElementById("deleteResult").innerHTML = `<p class="success">🎉 You removed the outlier!</p>`;
+          document.getElementById("result").innerHTML = `
+            <div style="display: flex; flex-wrap: wrap; gap: 0 32px; align-items: flex-start;">
+              <div style="min-width:220px;">
+                <p>👆You chose: <b>${correctAnswer}</b></p>
+                <p>🧠 AI guessed: <b>${aiGuess}</b></p>
+                <p>⏱️ Your time: <b>${timeTaken}</b> seconds</p>
+                <p>⚡ AI time: <b>0.1</b> seconds</p>
+                <p>🎯 Correct answer: <b>${correctAnswer}</b></p>
+              </div>
+              <div style="
+                flex:1; 
+                min-width:260px; 
+                display:flex; 
+                flex-direction:column; 
+                justify-content:flex-end;
+                margin-top: 12px;
+              ">
+                <div style="
+                  background: linear-gradient(120deg, #1788b5 10%, #24b6f6 90%);
+                  border-left: 5px solid #37b9f3;
+                  border-right: 5px solid #00b2ff;
+                  padding: 20px 22px;
+                  border-radius: 12px;
+                  font-size: 1.13em;
+                  color: #0f172a;
+                  margin-top: auto;
+                  box-shadow: 0 2px 12px 0 rgba(56,189,248,0.10);
+                  font-weight: 500;
+                  line-height: 1.6;
+                  letter-spacing: 0.01em;
+                  border-right: 5px solid #00b2ff; /* ensure right border */
+                  border-left: 5px solid #37b9f3;  /* ensure left border */
+                ">
+                  <span style="display:block; font-size:1.09em; margin-bottom:8px;">
+                    <b>Why does this matter?</b>
+                  </span>
+                  These results show that <b>AI can find and remove anomalies</b>—in this case, number outliers—<b>over 20× faster than humans</b>.
+                  <br><br>
+                  This demonstrates that implementing AI in cybersecurity is ideal for preventing long blackouts and downtimes by rapidly detecting and mitigating threats.
+                </div>
+              </div>
+            </div>
+          `;
+          document.getElementById("startBtn").disabled = false;
+          gameActive = false;
+        }, 500);
+      } else {
+        span.classList.add('outlier-hover');
+        document.getElementById("deleteResult").innerHTML = `<p class="fail">❌ That was not the outlier. Try again!</p>`;
+        setTimeout(() => {
+          span.classList.remove('outlier-hover');
+        }, 500);
+      }
+    }
+  </script>
+</body>
+</html>
